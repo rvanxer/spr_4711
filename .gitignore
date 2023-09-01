@@ -3,4 +3,5 @@ fig
 .ipynb_checkpoints
 code/__pycache__
 code/_old
+code/cache
 code/fmm
