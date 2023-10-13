@@ -10,7 +10,7 @@ SCALES = ('COUNTY', 'TRACT', 'BG')
 # travel modes considered, along with their other information
 MODES = Pdf(
     columns=['mode', 'gdm_key', 'max_speed', 'color'], data=[
-        ['DRIVE', 'driving', 70, 'deepskyblue'],
+        ['DRIVE', 'driving', 70, 'blue'],
         ['TRANSIT', 'transit', 20, 'deeppink'],
         ['BIKE', 'bicycling', 16, 'tomato'],
         ['WALK', 'walking', 3.1, 'seagreen'],
