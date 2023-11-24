@@ -125,8 +125,10 @@ def get_gdm_tt(zones, scale, mode, weekday=True, bidirec=False,
         df = pd.concat([odp[['src_geoid', 'trg_geoid']], df], axis=1)
         if save:
             df.to_csv(outfile, index=False)
+        return df
     except Exception as e:
         print(f'`{scale}` by `{mode}`: ERROR: {e}')
+        return None
 
 #%%
 if __name__ == '__main__':
@@ -136,6 +138,19 @@ if __name__ == '__main__':
     modes = ('walking', 'bicycling', 'transit', 'driving')
     pbar = tqdm(list(it.product(scales, modes, weekdays)))
     zones = gpd.read_parquet('../data/zones/in_2010.parquet')
+    res = []
     for i, (scale, mode, weekday) in enumerate(pbar):
         pbar.set_description(f'{i+1}: {scale} x {mode}')
-        get_gdm_tt(zones, scale, mode, weekday, njobs=30)
+        df = get_gdm_tt(zones, scale, mode, weekday, njobs=30)
+        if df is None: continue
+        df = df.query('ok').drop(columns='ok')
+        df = df.assign(scale=scale, mode=mode)
+        df['day_type'] = 'weekday' if weekday else 'weekend'
+        res.append(df)
+    df = pd.concat(res).reset_index(drop=1)
+    df = df.astype(D(src_geoid=str, trg_geoid=str))
+    df = df.astype(D(src_geoid=CAT, trg_geoid=CAT, dist=np.float32, 
+                     time=np.float32, speed=np.float32, 
+                     scale=CAT, mode=CAT, day_type=CAT))
+    df.to_parquet(U.mkfile('../data/gdm/odp_in_2010.parquet'),
+                  compression='gzip')    
