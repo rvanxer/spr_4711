@@ -53,12 +53,13 @@ if [[ ! " ${modes[*]} " =~ " ${mode} " ]]; then
 fi
 echo "-----\nPROCESSING $level $rgn by $mode on port $port"
 # download the OSM database if it does not exist
-osm_dir=osm_$level/$rgn
+osm_dir=osm/$level/$rgn
 mkdir -p $osm_dir
-geoid=$(cut -d '-' -f 1 <<< "$rgn")
+# geoid=$(cut -d '-' -f 1 <<< "$rgn")
 pbf_file=$osm_dir/$rgn.osm.pbf
 if ! [ -f $pbf_file ]; then
-    fname="${rgn/"$geoid-"/""}-latest.osm.pbf"
+    # fname="${rgn/"$geoid-"/""}-latest.osm.pbf"
+    fname="$rgn-latest.osm.pbf"
     url="https://download.geofabrik.de/north-america/us/$fname"
     echo "Downloading $url to $osm_dir"
     wget $url -P $osm_dir
@@ -91,4 +92,4 @@ echo "Setting up routing server"
 sudo docker run -p $port:$port -v $data_dir $url osrm-routed \
 --port $port --max-table-size $nmax --algorithm mld $osrm_file
 # compute the distances & travel times
-# time python osrm.py -r $rgn -m $mode -p $port -n $nmax $args
+# time python osrm.py -l $level -r $rgn -m $mode -p $port -n $nmax $args

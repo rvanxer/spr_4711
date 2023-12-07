@@ -2,7 +2,9 @@
 import datetime as dt
 from glob import glob
 import itertools as it
-import os, sys
+import os
+import re
+import sys
 from pathlib import Path
 import warnings
 
@@ -108,6 +110,17 @@ def pplot(ax=None, fig=None, size=None, dpi=None, title=None, xlab=None,
     return ax
 
 
+def imsave(title=None, fig=None, ax=None, dpi=200, root='./fig', ext='png', opaque=True):
+    """Save the current matplotlib figure to disk."""
+    fig = fig or plt.gcf()
+    ax = ax or fig.axes[0]
+    title = title or fig._suptitle or ax.get_title() or 'Untitled {}'.format(
+        dt.datetime.now().strftime('%Y-%m-%d_%H-%m-%S'))
+    title = re.sub(r'[^A-Za-z\s\d,.-]', '_', title)
+    fig.savefig(f'{mkdir(root)}/{title}.{ext}', dpi=dpi, bbox_inches='tight',
+                transparent=not opaque, facecolor='white' if opaque else 'auto')
+
+
 def disp_table(df: Pdf, styles=()) -> None:
     """Fancy display a Pandas dataframe in notebooks with custom styles."""
     display(HTML(df.style.set_table_styles(styles)
@@ -129,10 +142,10 @@ def disp(x: Pdf | Gdf | Series | GeoSeries, top=1):
                                if crs else x.head(top)]))
         else:
             print(x.head(top))
-    if isinstance(x, gpd.GeoDataFrame): f(True, True)
-    elif isinstance(x, pd.DataFrame): f(True, False)
-    elif isinstance(x, gpd.GeoSeries): f(False, True)
-    elif isinstance(x, pd.Series): f(False, False)
+    if isinstance(x, Gdf): f(True, True)
+    elif isinstance(x, Pdf): f(True, False)
+    elif isinstance(x, GeoSeries): f(False, True)
+    elif isinstance(x, Series): f(False, False)
     return x
 
 #%% Settings

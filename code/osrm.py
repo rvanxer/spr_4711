@@ -7,10 +7,11 @@ import requests
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 #%% Main routine
 def main(level, rgn, scale, mode, nmax, ip, year=2020, 
-         outdir='dist', overwrite=False):
+         max_time=90 * 60, outdir='dist', overwrite=False):
     """Compute the all-to-all distance/travel time OD matrix for all the zones 
     of the given region at the given scale.
 
@@ -44,14 +45,14 @@ def main(level, rgn, scale, mode, nmax, ip, year=2020,
     assert level in ['state', 'msa'], level
     assert mode in ['drive', 'bike', 'walk'], mode
     assert year in [2010, 2020], year
-    label = f'{rgn}_{scale}_{mode}_{year}'
+    label = f'{scale}_{mode}_{year}'
     outpath = Path(outdir) / f'{level}/{rgn}/{label}.parquet'
+    pts = pd.read_parquet(f'zones/{level}_{year}.parquet')
     if outpath.exists() and not overwrite:
-        print(f'Skipping {label}')
+        print(f'Skipping {rgn} {label}')
         return
     tstart = dt.now()
-    print(f'{tstart}: Processing {label}')
-    pts = pd.read_parquet(f'zones/{level}_{year}.parquet')
+    print(f'{tstart}: Processing {rgn} {label}')
     pts = pts[(pts['scale'] == scale) & (pts[level] == rgn)]
     geoids = pts.reset_index(drop=1)['geoid'].astype('category')
     xy = ';'.join([f'{x:.6f},{y:.6f}' for x, y in 
@@ -60,7 +61,7 @@ def main(level, rgn, scale, mode, nmax, ip, year=2020,
     breaks = list(np.arange(0, len(pts), nmax)) + [len(pts)]
     parts = np.split(np.arange(0, len(pts)), breaks)[1:-1]
     od = []
-    for ix, iy in product(parts, parts):
+    for ix, iy in tqdm(product(parts, parts), total=len(parts) ** 2):
         src = 'sources=' + ';'.join(ix.astype(str))
         trg = 'destinations=' + ';'.join(iy.astype(str))
         annot = 'annotations=distance,duration'
@@ -75,7 +76,7 @@ def main(level, rgn, scale, mode, nmax, ip, year=2020,
                .reset_index().melt('index', value_name='duration'))
         df = pd.concat([dist, dur['duration']], axis=1).astype(dict(
             src=np.int32, trg=np.int32, distance=np.float32,
-            duration=np.float32)).query('distance > 0')
+            duration=np.float32)).query(f'0 <= duration <= {max_time}')
         od.append(df)
     od = (pd.concat(od).reset_index(drop=1)
           .merge(geoids.rename('src_geoid'), left_on='src', right_index=True)
@@ -87,16 +88,12 @@ def main(level, rgn, scale, mode, nmax, ip, year=2020,
     tend = dt.now()
     print(f'{tend}: Runtime for {label}: {tend - tstart}')
 
-# ip = 'http://0.0.0.0:5108'
-# x = main('state', '44-rhode-island', 'tract', 'drive', 3000, ip, outdir='dist', overwrite=1); x
-# x = main('msa', '39300-providence', 'tract', 'drive', 3000, ip, outdir='dist', overwrite=1); x
-
 #%% Script run
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
-    arg('-l', '--level') # level of target regions (state or MSA)
-    arg('-r', '--regions') # target regions
+    arg('-l', '--level') # level of target regions ('state' or 'msa')
+    arg('-r', '--regions') # names of target regions, separated by '_'
     arg('-m', '--mode') # travel mode
     arg('-s', '--scales', default='county-tract-bg') # spatial scales
     arg('-n', '--nmax', type=int, default=3000) # max batch size
@@ -108,8 +105,11 @@ if __name__ == '__main__':
     ip = f'http://{kw.domain}:{kw.port}' # IP address of server
     for rgn in kw.regions.split('_'):
         for scale in kw.scales.split('-'):
+            print(kw.level, rgn, scale, kw.mode, kw.nmax, kw.year, ip)
             try:
-                main(rgn, scale, kw.mode, kw.year, kw.nmax,
-                     ip=ip, outdir='dist_msa', overwrite=kw.overwrite)
+                main(kw.level, rgn, scale, kw.mode, kw.nmax, year=kw.year,
+                    ip=ip, outdir='dist', overwrite=kw.overwrite)
             except Exception as e:
-                print('ERROR:', rgn, scale, kw.mode, kw.year, e)
+                print('ERROR:', kw.level, rgn, scale, kw.mode, kw.year, e)
+
+#%%
