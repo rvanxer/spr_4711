@@ -33,10 +33,15 @@ CRS_M = 'EPSG:3857' # spatial CRS (unit: meter)
 
 # Unit conversion factors
 M2FT = 3.28084 # meter to feet
+FT2M = 1 / M2FT
 MI2M = 1609.34  # mile to meter
+M2MI = 1 / MI2M
 MI2KM = 1.60934  # mile to kilometer
-SQMI2SQM = 2.59  # sq. mile to sq. meter
+KM2MI = 1 / MI2KM
+SQMI2SQM = 2.59e6  # sq. mile to sq. meter
+SQM2SQMI = 1 / SQMI2SQM # sq. m. to sq. mi.
 MPS2MPH = 2.2369363 # meters per second to miles per hr
+MPH2MPS = 1 / MPS2MPH # miles per hr to meters per second
 
 #%% Helper/utility functions
 def mkdir(path: str | Path) -> Path:
@@ -65,7 +70,7 @@ def normalize(x: ArrayLike, vmin=None, vmax=None) -> ArrayLike:
 def pdf2gdf(df: Pdf, x='lon', y='lat', crs=None) -> Gdf:
     """Convert a pandas DataFrame to a point GeoDataFrame."""
     geom = gpd.points_from_xy(df[x], df[y], crs=crs)
-    return gpd.GeoDataFrame(df, geometry=geom)
+    return Gdf(df, geometry=geom)
 
 
 def gdf2pdf(df: Gdf, x='lon', y='lat', crs=None) -> Pdf:
@@ -73,8 +78,7 @@ def gdf2pdf(df: Gdf, x='lon', y='lat', crs=None) -> Pdf:
     if isinstance(crs, str) or isinstance(crs, int):
         df = df.to_crs(crs)
     geom = df if isinstance(df, gpd.GeoSeries) else df.geometry
-    return pd.DataFrame(geom.apply(lambda g: g.coords[0]).tolist(),
-                        columns=[x, y])
+    return Pdf(geom.apply(lambda g: g.coords[0]).tolist(), columns=[x, y])
 
 
 def pplot(ax=None, fig=None, size=None, dpi=None, title=None, xlab=None,
@@ -110,8 +114,9 @@ def pplot(ax=None, fig=None, size=None, dpi=None, title=None, xlab=None,
     return ax
 
 
-def imsave(title=None, fig=None, ax=None, dpi=200, root='./fig', ext='png', opaque=True):
-    """Save the current matplotlib figure to disk."""
+def imsave(title=None, fig=None, ax=None, dpi=200, 
+           root='./fig', ext='png', opaque=True):
+    """Custom method to save the current matplotlib figure."""
     fig = fig or plt.gcf()
     ax = ax or fig.axes[0]
     title = title or fig._suptitle or ax.get_title() or 'Untitled {}'.format(
@@ -128,7 +133,7 @@ def disp_table(df: Pdf, styles=()) -> None:
 
 
 def disp(x: Pdf | Gdf | Series | GeoSeries, top=1):
-    """Custom display for DataFrame and Series objects."""
+    """Custom display for DataFrame and Series objects in Jupyter notebooks."""
     def f(tabular: bool, crs: bool):
         shape = ('{:,} rows x {:,} cols'.format(*x.shape) if tabular
                  else f'{x.size:,} rows')
