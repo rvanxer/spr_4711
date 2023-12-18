@@ -9,6 +9,7 @@ from pathlib import Path
 import warnings
 
 # Commonly used external imports
+import contextily as ctx
 import geopandas as gpd
 from geopandas import GeoDataFrame as Gdf
 from geopandas import GeoSeries
@@ -30,6 +31,7 @@ D = dict
 CAT = 'category' # pandas Categorical
 CRS_DEG = 'EPSG:4326' # geographical CRS (unit: degree)
 CRS_M = 'EPSG:3857' # spatial CRS (unit: meter)
+BASEMAP = ctx.providers.OpenStreetMap.Mapnik
 
 # Unit conversion factors
 M2FT = 3.28084 # meter to feet
