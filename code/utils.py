@@ -31,6 +31,7 @@ D = dict
 CAT = 'category' # pandas Categorical
 CRS_DEG = 'EPSG:4326' # geographical CRS (unit: degree)
 CRS_M = 'EPSG:3857' # spatial CRS (unit: meter)
+INF = np.inf # infinity
 BASEMAP = ctx.providers.OpenStreetMap.Mapnik
 
 # Unit conversion factors
