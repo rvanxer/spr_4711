@@ -3,9 +3,11 @@ import datetime as dt
 from glob import glob
 import itertools as it
 import os
+import pickle
 import re
 import sys
 from pathlib import Path
+from typing import Any
 import warnings
 
 # Commonly used external imports
@@ -61,6 +63,19 @@ def mkfile(path: str | Path) -> Path:
     return mkdir(path.parent) / path.name
 
 
+def load_pickle(path: str | Path) -> Any:
+    """Load a pickled object."""
+    with open(path, 'rb') as f:
+        obj = pickle.load(f)
+    return obj
+
+
+def save_pickle(obj: Any, path: str | Path) -> None:
+    """Pickle an arbitrary object."""
+    with open(mkfile(path), 'wb') as f:
+        pickle.dump(obj, f)
+
+
 def normalize(x: ArrayLike, vmin=None, vmax=None) -> ArrayLike:
     """Normalize an array of values to fit in the range [0, 1]."""
     if isinstance(x, list) or isinstance(x, tuple):
@@ -88,7 +103,7 @@ def pplot(ax=None, fig=None, size=None, dpi=None, title=None, xlab=None,
           ylab=None, xlim=None, ylim=None, titlesize=None, xlabsize=None,
           ylabsize=None, xeng=False, yeng=False, xticks=None, yticks=None,
           xticks_rotate=None, yticks_rotate=None, xlog=False, ylog=False,
-          axoff=False, gridcolor=None, framebordercolor=None):
+          xminor=True, yminor=True, axoff=False, gridcolor=None, framebordercolor=None):
     """Custom matplotlib plotting function template."""
     if isinstance(size, tuple) and fig is None:
         fig, ax = plt.subplots(figsize=size, dpi=dpi)
@@ -104,6 +119,10 @@ def pplot(ax=None, fig=None, size=None, dpi=None, title=None, xlab=None,
     if ylog: ax.set_yscale('log')
     if xticks: ax.set_xticks(xticks)
     if yticks: ax.set_yticks(yticks)
+    if xminor: ax.tick_params(which='minor', bottom=True)
+    else: ax.tick_params(which='minor', bottom=False)
+    if yminor: ax.tick_params(which='minor', left=True)
+    else: ax.tick_params(which='minor', left=False)
     if xticks_rotate:
         ax.set_xticklabels(ax.get_xticklabels(), rotation=xticks_rotate)
     if yticks_rotate:
@@ -113,6 +132,7 @@ def pplot(ax=None, fig=None, size=None, dpi=None, title=None, xlab=None,
     if framebordercolor:
         for s in ['left', 'right', 'top', 'bottom']:
             ax.spines[s].set_color(framebordercolor)
+    ax.set_axisbelow(True)
     fig = fig or plt.gcf()
     return ax
 
