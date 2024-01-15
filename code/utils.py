@@ -31,19 +31,18 @@ import yaml
 
 #%% Classes
 class Dataset:
-    def __init__(self, df, target, rng, test_ratio, n=None, 
+    def __init__(self, df, target, rng, test_ratio, n=None,
                  wide=True, factors=[], wts_col='TripWeight', seed=1234):
-        if isinstance(n, int):
-            df = df.sample(n, random_state=seed)
+        # df = df.query('Sampled')# if target == 'Duration' else df
+        df = df.sample(n, random_state=seed) if isinstance(n, int) else df
         self.X = df.select_dtypes(CAT)
         if type(factors) in [list, set, tuple] and len(factors) > 0:
             self.X = self.X[list(factors)]
-        if wide:
-            self.X = pd.get_dummies(self.X, prefix_sep='__')
+        self.X = pd.get_dummies(self.X, prefix_sep='__') if wide else self.X
         self.y = normalize(df[target], *rng)
         self.Xtrain, self.Xtest, self.ytrain, self.ytest = train_test_split(
                 self.X, self.y, test_size=test_ratio, random_state=seed)
-        wts = df[wts_col].rename('weight')
+        wts = df[wts_col].rename('Weight')
         self.wtrain = wts.loc[self.Xtrain.index]
         self.wtest = wts.loc[self.Xtest.index]
 
@@ -156,7 +155,7 @@ def pplot(ax=None, fig=None, size=None, dpi=None, title=None, xlab=None,
     return ax
 
 
-def imsave(title=None, fig=None, ax=None, dpi=200, 
+def imsave(title=None, fig=None, ax=None, dpi=300,
            root='./fig', ext='png', opaque=True):
     """Custom method to save the current matplotlib figure."""
     fig = fig or plt.gcf()
