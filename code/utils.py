@@ -1,3 +1,4 @@
+#%% Imports
 # Commonly used built-in imports
 import datetime as dt
 from glob import glob
@@ -24,27 +25,15 @@ from numpy.typing import ArrayLike
 import pandas as pd
 from pandas import DataFrame as Pdf
 from pandas import Series
+from pyarrow.parquet import read_schema
 import seaborn as sns
 from sklearn.model_selection import train_test_split
 from tqdm.notebook import tqdm
 import yaml
 
-#%% Classes
-class Dataset:
-    def __init__(self, df, target, rng, test_ratio, n=None,
-                 wide=True, factors=[], wts_col='TripWeight', seed=1234):
-        # df = df.query('Sampled')# if target == 'Duration' else df
-        df = df.sample(n, random_state=seed) if isinstance(n, int) else df
-        self.X = df.select_dtypes(CAT)
-        if type(factors) in [list, set, tuple] and len(factors) > 0:
-            self.X = self.X[list(factors)]
-        self.X = pd.get_dummies(self.X, prefix_sep='__') if wide else self.X
-        self.y = normalize(df[target], *rng)
-        self.Xtrain, self.Xtest, self.ytrain, self.ytest = train_test_split(
-                self.X, self.y, test_size=test_ratio, random_state=seed)
-        wts = df[wts_col].rename('Weight')
-        self.wtrain = wts.loc[self.Xtrain.index]
-        self.wtest = wts.loc[self.Xtest.index]
+#%% Important paths
+DATA = Path('../data')
+FIG = Path('../fig')
 
 #%% Aliases
 D = dict
@@ -65,6 +54,8 @@ SQMI2SQM = 2.59e6  # sq. mile to sq. meter
 SQM2SQMI = 1 / SQMI2SQM # sq. m. to sq. mi.
 MPS2MPH = 2.2369363 # meters per second to miles per hr
 MPH2MPS = 1 / MPS2MPH # miles per hr to meters per second
+
+SEED = 1234 # common random state initializer for all main random operations
 
 #%% Helper/utility functions
 def mkdir(path: str | Path) -> Path:
@@ -103,6 +94,12 @@ def normalize(x: ArrayLike, vmin=None, vmax=None) -> ArrayLike:
     return (x - vmin) / (vmax - vmin)
 
 
+def ordered_factor(x: Series):
+    """Create a categorical series with categories in the original order."""
+    cats = Series(x).drop_duplicates()
+    return pd.Categorical(x, categories=cats)
+    
+
 def pdf2gdf(df: Pdf, x='lon', y='lat', crs=None) -> Gdf:
     """Convert a pandas DataFrame to a point GeoDataFrame."""
     geom = gpd.points_from_xy(df[x], df[y], crs=crs)
@@ -115,6 +112,31 @@ def gdf2pdf(df: Gdf, x='lon', y='lat', crs=None) -> Pdf:
         df = df.to_crs(crs)
     geom = df if isinstance(df, gpd.GeoSeries) else df.geometry
     return Pdf(geom.apply(lambda g: g.coords[0]).tolist(), columns=[x, y])
+
+
+def file_check(path: str | Path, overwrite=False, read_func=None,
+               **read_kws) -> None | Pdf:
+    """Return a pandas dataframe from the provided path if it is a 
+    valid CSV or parquet file."""
+    path = Path(path)
+    if path.exists() and not overwrite:
+        if read_func:
+            return read_func(path, **read_kws)
+        ext = path.suffix[1:]
+        if ext == 'csv':
+            return pd.read_csv(ext, **read_kws)
+        if ext == 'parquet':
+            if 'geometry' in read_schema(path).names:
+                return gpd.read_parquet(path, **read_kws)
+            else:
+                return pd.read_parquet(path, **read_kws)
+        return ext
+
+
+def disp_table(df: Pdf, styles=()) -> None:
+    """Fancy display a Pandas dataframe in notebooks with custom styles."""
+    display(HTML(df.style.set_table_styles(styles)
+                 .to_html().replace('\\n', '<br>')))
 
 
 def pplot(ax=None, fig=None, size=None, dpi=None, title=None, xlab=None,
@@ -156,7 +178,7 @@ def pplot(ax=None, fig=None, size=None, dpi=None, title=None, xlab=None,
 
 
 def imsave(title=None, fig=None, ax=None, dpi=300,
-           root='./fig', ext='png', opaque=True):
+           root=FIG, ext='png', opaque=True):
     """Custom method to save the current matplotlib figure."""
     fig = fig or plt.gcf()
     ax = ax or fig.axes[0]
@@ -167,12 +189,6 @@ def imsave(title=None, fig=None, ax=None, dpi=300,
                 transparent=not opaque, facecolor='white' if opaque else 'auto')
 
 
-def disp_table(df: Pdf, styles=()) -> None:
-    """Fancy display a Pandas dataframe in notebooks with custom styles."""
-    display(HTML(df.style.set_table_styles(styles)
-                 .to_html().replace('\\n', '<br>')))
-
-
 def disp(x: Pdf | Gdf | Series | GeoSeries, top=1):
     """Custom display for DataFrame and Series objects in Jupyter notebooks."""
     def f(tabular: bool, crs: bool):
@@ -180,7 +196,7 @@ def disp(x: Pdf | Gdf | Series | GeoSeries, top=1):
                  else f'{x.size:,} rows')
         mem = x.memory_usage(deep=True) / (1024 ** 2)
         mem = f'Memory: {(mem.sum() if tabular else mem):.1f} MiB'
-        crs = f'CRS: {x.crs.srs}' if crs else ''
+        crs = repr(x.crs).split('\n')[0] if crs else ''
         print(shape + '; ' + mem + ('; ' + crs if crs else ''))
         if tabular:
             types = Pdf({x.index.name or '': '<' + x.dtypes.astype(str) + '>'}).T
@@ -240,3 +256,5 @@ pd.DataFrame.disp = disp
 gpd.GeoDataFrame.disp = disp
 gpd.GeoSeries.disp = disp
 pd.Series.disp = disp
+
+#%%
