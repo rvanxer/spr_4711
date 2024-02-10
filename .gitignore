@@ -1,7 +1,8 @@
+.ipynb_checkpoints
+.nfs*
 dashboard/VisOD
 data
 fig
-.ipynb_checkpoints
 code/__pycache__
 code/_old
 code/cache
