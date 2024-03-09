@@ -1,6 +1,7 @@
 #%% Imports
 # Commonly used built-in imports
 import datetime as dt
+from functools import reduce
 from glob import glob
 import itertools as it
 import os
@@ -19,6 +20,7 @@ from geopandas import GeoSeries
 from IPython.display import display, HTML
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib_scalebar.scalebar import ScaleBar
 import numpy as np
 from numpy import array as Arr
 from numpy.typing import ArrayLike
@@ -27,8 +29,8 @@ from pandas import DataFrame as Pdf
 from pandas import Series
 from pyarrow.parquet import read_schema
 import seaborn as sns
-from sklearn.model_selection import train_test_split
 from tqdm.notebook import tqdm
+import xyzservices.providers as xyz
 import yaml
 
 #%% Important paths
@@ -42,6 +44,7 @@ CRS_DEG = 'EPSG:4326' # geographical CRS (unit: degree)
 CRS_M = 'EPSG:3857' # spatial CRS (unit: meter)
 INF = np.inf # infinity
 BASEMAP = ctx.providers.OpenStreetMap.Mapnik
+EPS = 1e-6 # a small error term to prevent DivisionByZeroError
 
 # Unit conversion factors
 M2FT = 3.28084 # meter to feet
@@ -99,6 +102,13 @@ def ordered_factor(x: Series):
     cats = Series(x).drop_duplicates()
     return pd.Categorical(x, categories=cats)
     
+    
+def query(df: Pdf | Gdf, **kwargs):
+    """Filter a dataframe with keyword arguments."""
+    masks = [(df[k] == v) for k, v in kwargs.items()]
+    mask = reduce(Series.mul, masks, Series(True, df.index))
+    return df[mask]
+
 
 def pdf2gdf(df: Pdf, x='lon', y='lat', crs=None) -> Gdf:
     """Convert a pandas DataFrame to a point GeoDataFrame."""
@@ -174,6 +184,15 @@ def pplot(ax=None, fig=None, size=None, dpi=None, title=None, xlab=None,
             ax.spines[s].set_color(framebordercolor)
     ax.set_axisbelow(True)
     fig = fig or plt.gcf()
+    return ax
+
+
+def basemap(ax, source=xyz.OpenStreetMap.Mapnik, crs=CRS_M,
+            scalebar=True, width=0.2):
+    """Add a basemap to a matplotlib axes."""
+    ctx.add_basemap(ax=ax, crs=crs, source=source)
+    if scalebar:
+        ax.add_artist(ScaleBar(width))
     return ax
 
 
