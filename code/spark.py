@@ -2,11 +2,35 @@ import os, sys
 from pathlib import Path
 
 from pyspark import SparkConf, SparkContext
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, types
 from pyspark.sql import functions as F
 
 os.environ['PYSPARK_PYTHON'] = sys.executable
 os.environ['PYSPARK_DRIVER_PYTHON'] = sys.executable
+
+
+class T:
+    """Aliases for common pyspark data types."""
+    # simple types
+    null = types.NullType()
+    bool = types.BooleanType()
+    int = types.IntegerType()
+    int8 = types.ByteType()
+    int16 = types.ShortType()
+    int32 = types.IntegerType()
+    int64 = types.LongType()
+    float = types.FloatType()
+    double = types.DoubleType()
+    time = types.TimestampType()
+    date = types.DateType()
+    str = types.StringType()
+    binary = types.BinaryType()
+    # callable, composite types
+    array = types.ArrayType
+    map = types.MapType
+    field = types.StructField
+    schema = types.StructType
+    
 
 class Spark:
     """A custom pyspark session handler to help with pyspark operations."""

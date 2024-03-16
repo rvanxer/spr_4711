@@ -134,7 +134,7 @@ def file_check(path: str | Path, overwrite=False, read_func=None,
             return read_func(path, **read_kws)
         ext = path.suffix[1:]
         if ext == 'csv':
-            return pd.read_csv(ext, **read_kws)
+            return pd.read_csv(path, **read_kws)
         if ext == 'parquet':
             if 'geometry' in read_schema(path).names:
                 return gpd.read_parquet(path, **read_kws)
