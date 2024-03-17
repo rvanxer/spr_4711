@@ -3,6 +3,7 @@
 dashboard/VisOD
 data
 fig
+code/.tmp
 code/__pycache__
 code/_old
 code/cache

@@ -28,6 +28,7 @@ import pandas as pd
 from pandas import DataFrame as Pdf
 from pandas import Series
 from pyarrow.parquet import read_schema
+from pyspark.sql import DataFrame as Sdf
 import seaborn as sns
 from tqdm.notebook import tqdm
 import xyzservices.providers as xyz
@@ -39,10 +40,13 @@ FIG = Path('../fig')
 
 #%% Aliases
 D = dict
-CAT = 'category' # pandas Categorical
 CRS_DEG = 'EPSG:4326' # geographical CRS (unit: degree)
 CRS_M = 'EPSG:3857' # spatial CRS (unit: meter)
+CAT = 'category' # pandas Categorical
 INF = np.inf # infinity
+# numpy integer and floating point formats
+I16, I32, I64 = np.int16, np.int32, np.int64
+F32, F64 = np.float32, np.float64
 BASEMAP = ctx.providers.OpenStreetMap.Mapnik
 EPS = 1e-6 # a small error term to prevent DivisionByZeroError
 
@@ -208,7 +212,7 @@ def imsave(title=None, fig=None, ax=None, dpi=300,
                 transparent=not opaque, facecolor='white' if opaque else 'auto')
 
 
-def disp(x: Pdf | Gdf | Series | GeoSeries, top=1):
+def disp(x: Pdf | Gdf | Series | GeoSeries, top=1, vert=False):
     """Custom display for DataFrame and Series objects in Jupyter notebooks."""
     def f(tabular: bool, crs: bool):
         shape = ('{:,} rows x {:,} cols'.format(*x.shape) if tabular
@@ -227,6 +231,11 @@ def disp(x: Pdf | Gdf | Series | GeoSeries, top=1):
     elif isinstance(x, Pdf): f(True, False)
     elif isinstance(x, GeoSeries): f(False, True)
     elif isinstance(x, Series): f(False, False)
+    elif isinstance(x, Sdf):
+        if top == 0:
+            x.printSchema()
+        else:
+            x.show(top, vertical=bool(vert))
     return x
 
 #%% Settings
@@ -275,5 +284,6 @@ pd.DataFrame.disp = disp
 gpd.GeoDataFrame.disp = disp
 gpd.GeoSeries.disp = disp
 pd.Series.disp = disp
+Sdf.disp = disp
 
 #%%
