@@ -13,7 +13,7 @@ This is a repository of ongoing research in computing different measures of spat
 ## Data description
 The accessibility data for the [50 most populous]((https://en.wikipedia.org/wiki/Metropolitan_statistical_area#Rankings)) Metropolitan Statistical Areas (MSAs) can be downloaded from the following repository:
 
-- **Download link**: [Spatial Accessibility of America (SAA)](https://purdue0-my.sharepoint.com/:f:/g/personal/verma99_purdue_edu/El7mb19l-NFAvukJbig9pLIBB65HegJbb3DdeBNq-P_fpQ?e=oX6z7C) (access code: `access_umni`).
+- **Download link**: [Spatial Accessibility of America (SAA)](https://drive.google.com/drive/folders/1q1Pg9zox8rH5ztleHri2tuP41MexP2LA?usp=sharing).
 
 The data file is a comma-separated values (CSV) file containing 216 measures of accessibility for neighborhoods of the 50 most populous urban areas, given at three spatial scales of analysis – (i) county, (ii) census tract, and (iii) census block group (BG), which are identified by their [FIPS](https://en.wikipedia.org/wiki/Federal_Information_Processing_Standards) codes. These are explained below:
 
